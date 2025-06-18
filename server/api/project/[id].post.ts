@@ -1,7 +1,9 @@
+import { omit } from 'lodash-es'
 import prisma from '~/lib/prisma'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
+
   if (!id) {
     throw createError({
       statusCode: 400,
@@ -17,11 +19,21 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const project = await prisma.project.findUnique({
+  const body = await readBody(event)
+
+  if (!body.name) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Missing name',
+    })
+  }
+
+  const project = await prisma.project.update({
     where: {
       id: numericId,
     },
+    data: omit(body, 'id', 'pages'),
   })
 
-  return project
+  return project.id
 })
