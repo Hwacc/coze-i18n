@@ -1,42 +1,45 @@
 <script setup lang="ts">
-import type { IProject } from '~/types/interfaces'
-import { Project } from '~/types/project'
+import type { IPage } from '~/types/interfaces'
+import { Page } from '~/types/page'
 import { z } from 'zod/v4'
 import type { FormSubmitEvent } from '@nuxt/ui'
 
 type Mode = 'edit' | 'create' | 'view'
-const { mode, project = new Project('') } = defineProps<{
+const {
+  mode,
+  page = new Page(''),
+  file,
+} = defineProps<{
   mode: Mode
-  project?: IProject
+  file?: File
+  page?: IPage
 }>()
 
 const schema = z.object({
   name: z.string().min(3),
-  description: z.optional(z.string()),
 })
 type Schema = z.output<typeof schema>
 
 const state = reactive<Schema>({
-  name: project.name,
-  description: project.description || '',
+  name: page.name,
 })
 
 const title = computed(() => {
   switch (mode) {
     case 'create':
     default:
-      return 'New Project'
+      return 'New Page'
     case 'edit':
-      return 'Edit Project'
+      return 'Edit Page'
     case 'view':
-      return 'View Project'
+      return 'View Page'
   }
 })
 
 const emit = defineEmits<{
   close: [boolean]
   save: [
-    Pick<IProject, 'name' | 'description'>,
+    Pick<IPage, 'name'>,
     {
       close: () => void
     }
@@ -44,7 +47,7 @@ const emit = defineEmits<{
 }>()
 
 async function onSubmit(_: FormSubmitEvent<Schema>) {
-  emit('save', state as Pick<IProject, 'name' | 'description'>, {
+  emit('save', state as Pick<IPage, 'name'>, {
     close: () => emit('close', true),
   })
 }
@@ -66,17 +69,6 @@ async function onSubmit(_: FormSubmitEvent<Schema>) {
             :disabled="mode === 'view'"
           />
         </UFormField>
-        <UFormField label="Description" name="description">
-          <UTextarea
-            v-model="state.description"
-            class="w-full"
-            :disabled="mode === 'view'"
-            :rows="3"
-            :maxrows="3"
-            autoresize
-          />
-        </UFormField>
-
         <div class="w-full flex justify-end gap-4 mt-4">
           <UButton
             color="neutral"
