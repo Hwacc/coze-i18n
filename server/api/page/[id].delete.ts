@@ -1,8 +1,8 @@
-import prisma from '~/libs/prisma'
+import prisma from "~/libs/prisma"
 
 /**
- * @route GET /api/project/:id
- * @description Get a project
+ * @route DELETE /api/page/:id
+ * @description Delete a page
  * @access Private
  */
 export default defineEventHandler(async (event) => {
@@ -14,7 +14,6 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Missing id',
     })
   }
-
   const numericID = parseInt(id, 10)
   if (isNaN(numericID)) {
     throw createError({
@@ -22,20 +21,13 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Invalid id format',
     })
   }
-
-  const project = await prisma.project.findUnique({
+  const page = await prisma.page.delete({
     where: {
       id: numericID,
     },
     include: {
-      pages: {
-        orderBy: {
-          updatedAt: 'desc',
-        },
-      },
-      users: true,
+      tags: true,
     },
   })
-
-  return project
+  return page
 })
