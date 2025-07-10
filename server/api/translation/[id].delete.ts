@@ -1,13 +1,9 @@
-import { omit } from 'lodash-es'
 import prisma from '~/server/libs/prisma'
-import { fpTranslation } from '~/utils'
 import { numericID } from '~/utils/id'
-import { zTranslation } from '~/utils/schemas'
-import { readZodBody } from '~/utils/validate'
 
 /**
- * @route POST /api/translation/:id
- * @description Update a translation
+ * @route DELETE /api/translation/:id
+ * @description Delete a translation
  * @access Private
  */
 export default defineEventHandler(async (event) => {
@@ -20,13 +16,6 @@ export default defineEventHandler(async (event) => {
     })
   }
   const nID = numericID(id)
-  const body = await readZodBody(event, zTranslation.parse)
-  if (!body.origin) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Missing origin text',
-    })
-  }
   const existing = await prisma.translation.findUnique({
     where: {
       id: nID,
@@ -38,42 +27,36 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Translation not found',
     })
   }
-  // generate new fingerprint
-  const fingerprint = fpTranslation(body.origin)
   try {
-    const updatedTranslation = await prisma.translation.update({
+    const deletedTranslation = await prisma.translation.delete({
       where: {
         id: nID,
-      },
-      data: {
-        ...omit(body, ['id', 'fingerprint']),
-        fingerprint,
       },
     })
     await prisma.translationLog.create({
       data: {
-        action: 'UPDATE',
+        action: 'DELETE',
         status: 'SUCCESS',
-        origin: body.origin,
-        fingerprint,
+        origin: deletedTranslation.origin,
+        fingerprint: deletedTranslation.fingerprint,
         userID: numericID(session.user.id),
       },
     })
-    return updatedTranslation
+    return deletedTranslation
   } catch (error) {
     console.error(error)
     await prisma.translationLog.create({
       data: {
-        action: 'UPDATE',
+        action: 'DELETE',
         status: 'ERROR',
-        origin: body.origin,
-        fingerprint,
+        origin: existing.origin,
+        fingerprint: existing.fingerprint,
         userID: numericID(session.user.id),
       },
     })
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to update translation',
+      statusMessage: 'Failed to delete translation',
     })
   }
 })
